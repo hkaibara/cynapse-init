@@ -30,21 +30,25 @@ pipeline {
         stage('Release & Tag') {
             when { branch 'main' }
             steps {
-                withCredentials([usernamePassword(
-                    credentialsId: 'github-token',
-                    usernameVariable: 'GITHUB_USER',
-                    passwordVariable: 'GITHUB_PAT'
-                )]) {
-                    script {
-                        sh '''
-                        npm ci
-                        git config user.email "hiroshi.kaibara.hk@gmail.com"
-                        git config user.name "hkaibara"
-                        git checkout main
-                        git config credential.helper '!f() { echo username=$GITHUB_USER; echo password=$GITHUB_PAT; }; f'
-                        git pull --rebase origin main
-                        npx release-it --ci
-                        '''
+                script {
+                    if (env.BRANCH_NAME == 'main') {
+                        withCredentials([usernamePassword(
+                            credentialsId: 'github-token',
+                            usernameVariable: 'GITHUB_USER',
+                            passwordVariable: 'GITHUB_PAT'
+                        )]) {
+                            sh '''
+                                npm ci
+                                git config user.email "hiroshi.kaibara.hk@gmail.com"
+                                git config user.name "hkaibara"
+                                git checkout main
+                                git config credential.helper '!f() { echo username=$GITHUB_USER; echo password=$GITHUB_PAT; }; f'
+                                git pull --rebase origin main
+                                npx release-it --ci
+                            '''
+                        }
+                    } else {
+                        echo "Skipping Release & Tag stage: not on main branch"
                     }
                 }
             }
