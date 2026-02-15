@@ -19,10 +19,16 @@ pipeline {
         stage('Build Docker') {
             steps {
                 script {
+                    if (PREVIOUS_IMAGE != "none") {
+                        sh "docker tag ${DOCKER_IMAGE}:latest ${DOCKER_IMAGE}:backup"
+                        echo "Previous latest tagged as backup"
+                    }
                     sh "docker build --no-cache -t ${DOCKER_IMAGE}:latest ."
+                    sh "docker image prune -f"
                 }
             }
         }
+
         stage('Deploy') {
             steps {
                 script {
@@ -37,11 +43,11 @@ pipeline {
     post {
         failure {
             script {
-                if (PREVIOUS_IMAGE != "none" && PREVIOUS_IMAGE != "") {
-                    echo "Build failed! Rolling back to previous image: ${PREVIOUS_IMAGE}"
+                if (PREVIOUS_IMAGE != "none") {
+                    echo "Build failed! Rolling back to previous image: ${DOCKER_IMAGE}:backup"
                     sh "docker stop node-app-container || true"
                     sh "docker rm node-app-container || true"
-                    sh "docker run -d --name node-app-container -p 5000:5000${PREVIOUS_IMAGE}"
+                    sh "docker run -d --name node-app-container -p 5000:5000 ${DOCKER_IMAGE}:backup"
                 }
             }
         }
