@@ -7,7 +7,7 @@ sudo apt update -y
 sudo apt upgrade -y
 
 # install necessary packages
-sudo apt install -y openjdk-17-jdk docker.io nginx git curl gnupg openssl rsync
+sudo apt install -y openjdk-17-jdk docker.io nginx git curl gnupg openssl rsync xz-utils tar
 
 # jenkins repo setup
 sudo mkdir -p /usr/share/keyrings
@@ -30,7 +30,7 @@ if [ ! -f "$PLUGIN_MANAGER_JAR" ]; then
 fi
 
 # place the necessary plugins into these env.
-PLUGINS="configuration-as-code ssh-credentials git matrix-auth workflow-aggregator job-dsl"
+PLUGINS="configuration-as-code ssh-credentials git matrix-auth workflow-aggregator job-dsl nodejs"
 
 # downloads jenkins plugins and their dependencies, and then ensure compatibility with the installed WAR version
 sudo java -jar "$PLUGIN_MANAGER_JAR" --war /usr/share/java/jenkins.war --plugin-download-directory "$PLUGIN_DIR" --plugins $PLUGINS

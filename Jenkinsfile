@@ -2,7 +2,7 @@ pipeline {
     agent any
     
     tools {
-        nodejs "node18" 
+        nodejs "node20" 
     }
 
     environment {
@@ -30,10 +30,8 @@ pipeline {
         stage('Release & Tag') {
             when { branch 'main' }
             steps {
-                nodejs('node20') {
-                    sh 'git config user.email "hiroshi.kaibara.hk@gmail.com" && git config user.name "hkaibara"'
-                    sh 'npx release-it --ci'
-                }
+                sh 'git config user.email "hiroshi.kaibara.hk@gmail.com" && git config user.name "hkaibara"'
+                sh 'npx release-it --ci'
             }
         }
 

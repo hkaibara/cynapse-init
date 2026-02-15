@@ -20,6 +20,18 @@ credentials:
               privateKeySource:
                 directEntry:
                   privateKey: "${readFile:/var/lib/jenkins/.ssh/id_rsa}"
+
+
+tool:
+  nodejs:
+    installations:
+      - name: "node20"
+        properties:
+          - installSource:
+              installers:
+                - nodeJSInstaller:
+                    id: "20.18.0"
+
 jobs:
   - script: >
       multibranchPipelineJob('Node-App-CI-CD') {
