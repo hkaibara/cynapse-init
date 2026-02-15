@@ -29,8 +29,9 @@ pipeline {
 
         stage('Release & Tag') {
             when {
-                expression {
-                    return env.BRANCH_NAME == 'main' && env.TAG_NAME == null
+                allOf {
+                    branch 'main'
+                    not { buildingTag() }
                 }
             }
             steps {
