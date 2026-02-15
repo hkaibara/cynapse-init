@@ -19,7 +19,7 @@ pipeline {
         stage('Build Docker') {
             steps {
                 script {
-                    if (PREVIOUS_IMAGE != "none") {
+                    if (PREVIOUS_STABLE != "none") {
                         sh "docker tag ${DOCKER_IMAGE}:latest ${DOCKER_IMAGE}:backup"
                         echo "Previous latest tagged as backup"
                     }
@@ -43,7 +43,7 @@ pipeline {
     post {
         failure {
             script {
-                if (PREVIOUS_IMAGE != "none") {
+                if (PREVIOUS_STABLE != "none") {
                     echo "Build failed! Rolling back to previous image: ${DOCKER_IMAGE}:backup"
                     sh "docker stop node-app-container || true"
                     sh "docker rm node-app-container || true"
