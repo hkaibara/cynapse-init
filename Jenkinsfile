@@ -29,22 +29,19 @@ pipeline {
 
         stage('Release & Tag') {
             when { branch 'main' }
+            environment {
+                GITHUB_TOKEN = credentials('github-token')
+            }
             steps {
-                withCredentials([usernamePassword(
-                    credentialsId: 'github-token',
-                    usernameVariable: 'GITHUB_USER',
-                    passwordVariable: 'GITHUB_PAT'
-                )]) {
-                    script {
-                        sh '''
+                script {
+                    sh '''
                         npm ci
                         git config user.email "hiroshi.kaibara.hk@gmail.com"
                         git config user.name "hkaibara"
                         git checkout main
-                        git config credential.helper '!f() { echo username=$GITHUB_USER; echo password=$GITHUB_PAT; }; f'
+                        git pull --rebase origin main
                         npx release-it --ci
-                        '''
-                    }
+                    '''
                 }
             }
         }
