@@ -16,7 +16,6 @@ sudo apt install -y openjdk-17-jdk docker.io nginx git curl gnupg openssl
 # --- 1. FIXED JENKINS REPO SETUP ---
 echo "=== Adding Jenkins GPG key and Repository ==="
 sudo mkdir -p /usr/share/keyrings
-# Download and de-armor the key so it's in a format apt always understands
 curl -fsSL https://pkg.jenkins.io/debian-stable/jenkins.io-2026.key | sudo tee \
   /usr/share/keyrings/jenkins-keyring.asc > /dev/null
 echo deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc] \
@@ -27,24 +26,34 @@ sudo apt update
 sudo apt install -y jenkins
 
 # --- 2. PLUGIN INSTALLATION (No-UI Requirement) ---
-echo "=== Installing JCasC and JobDSL Plugins ==="
-curl -L "https://github.com/jenkinsci/plugin-installation-manager-tool/releases/download/2.13.0/jenkins-plugin-manager-2.13.0.jar" -o jenkins-plugin-manager.jar
-sudo java -jar jenkins-plugin-manager.jar --war /usr/share/java/jenkins.war --plugin-download-directory /var/lib/jenkins/plugins --plugins configuration-as-code job-dsl docker-workflow git
-sudo chown -R jenkins:jenkins /var/lib/jenkins/plugins
+echo "=== Installing Jenkins Plugins ==="
+PLUGIN_DIR="/var/lib/jenkins/plugins"
+PLUGIN_MANAGER_JAR="jenkins-plugin-manager.jar"
+curl -L "https://github.com/jenkinsci/plugin-installation-manager-tool/releases/download/2.13.0/jenkins-plugin-manager-2.13.0.jar" -o "$PLUGIN_MANAGER_JAR"
+
+# List all required plugins here (including matrix-auth, JCasC, JobDSL, etc.)
+PLUGINS="configuration-as-code job-dsl docker-workflow git matrix-auth"
+
+sudo java -jar "$PLUGIN_MANAGER_JAR" \
+    --war /usr/share/java/jenkins.war \
+    --plugin-download-directory "$PLUGIN_DIR" \
+    --plugins $PLUGINS
+
+sudo chown -R jenkins:jenkins "$PLUGIN_DIR"
 
 # --- 3. JCasC & SYSTEMD OVERRIDE ---
 echo "=== Configuring JCasC Pathing ==="
-sudo mkdir -p /var/lib/jenkins/casc/
-# Use the file from your repo clone
+JENKINS_CASC_DIR="/var/lib/jenkins/casc"
+sudo mkdir -p "$JENKINS_CASC_DIR"
 if [ -f "./jenkins.yaml" ]; then
-    sudo cp ./jenkins.yaml /var/lib/jenkins/casc/
-    sudo chown -R jenkins:jenkins /var/lib/jenkins/casc/
+    sudo cp ./jenkins.yaml "$JENKINS_CASC_DIR/"
+    sudo chown -R jenkins:jenkins "$JENKINS_CASC_DIR"
 fi
 
 sudo mkdir -p /etc/systemd/system/jenkins.service.d/
 sudo tee /etc/systemd/system/jenkins.service.d/override.conf <<EOF
 [Service]
-Environment="CASC_JENKINS_CONFIG=/var/lib/jenkins/casc/jenkins.yaml"
+Environment="CASC_JENKINS_CONFIG=$JENKINS_CASC_DIR/jenkins.yaml"
 # This injects your .env variables into Jenkins
 $(grep -v '^#' ./jenkins.env | sed 's/^/Environment="/; s/$/"/')
 EOF
@@ -73,7 +82,8 @@ EOF
 
 sudo rm -f /etc/nginx/sites-enabled/default
 
-# --- 5. RESTART & VERIFY ---
+# --- 5. FINAL SETUP & SERVICE MANAGEMENT ---
+echo "=== Adding Jenkins to Docker group & Restarting Services ==="
 sudo usermod -aG docker jenkins
 sudo systemctl daemon-reload
 sudo systemctl restart jenkins nginx docker
