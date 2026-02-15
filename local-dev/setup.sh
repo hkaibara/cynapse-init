@@ -11,12 +11,12 @@ sudo apt update -y
 sudo apt upgrade -y
 
 echo "=== Installing essential packages ==="
-sudo apt install -y openjdk-17-jdk docker.io nginx git curl gnupg openssl
+sudo apt install -y openjdk-17-jdk docker.io nginx git curl gnupg openssl rsync
 
 # --- 1. FIXED JENKINS REPO SETUP ---
 echo "=== Adding Jenkins GPG key and Repository ==="
 sudo mkdir -p /usr/share/keyrings
-curl -fsSL https://pkg.jenkins.io/debian-stable/jenkins.io-2026.key | sudo tee \
+curl -fsSL https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key | sudo tee \
   /usr/share/keyrings/jenkins-keyring.asc > /dev/null
 echo deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc] \
   https://pkg.jenkins.io/debian-stable binary/ | sudo tee \
@@ -24,6 +24,10 @@ echo deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc] \
 
 sudo apt update
 sudo apt install -y jenkins
+
+### CHANGE: Stop Jenkins immediately after install to prevent race conditions 
+### during plugin/config injection.
+sudo systemctl stop jenkins
 
 # --- 2. PLUGIN INSTALLATION (No-UI Requirement) ---
 echo "=== Installing Jenkins Plugins ==="
@@ -35,7 +39,7 @@ if [ ! -f "$PLUGIN_MANAGER_JAR" ]; then
     curl -L "https://github.com/jenkinsci/plugin-installation-manager-tool/releases/download/2.13.0/jenkins-plugin-manager-2.13.0.jar" -o "$PLUGIN_MANAGER_JAR"
 fi
 
-# List all required plugins (Crucial: ssh-credentials must be here for JCasC to work)
+# List all required plugins
 PLUGINS="configuration-as-code ssh-credentials git matrix-auth workflow-aggregator job-dsl"
 
 sudo java -jar "$PLUGIN_MANAGER_JAR" \
@@ -43,34 +47,36 @@ sudo java -jar "$PLUGIN_MANAGER_JAR" \
     --plugin-download-directory "$PLUGIN_DIR" \
     --plugins $PLUGINS
 
-sudo chown -R jenkins:jenkins "$PLUGIN_DIR"
-
 # --- 3. JCasC, SSH KEYS & SYSTEMD OVERRIDE ---
 echo "=== Configuring SSH Keys and JCasC ==="
 
-# Fix the libcrypto error by sanitizing the SSH key before copying
 if [ -f "./id_rsa" ]; then
     sudo mkdir -p /var/lib/jenkins/.ssh
     sudo cp ./id_rsa /var/lib/jenkins/.ssh/id_rsa
-    # REMOVE WINDOWS LINE ENDINGS (The \r fix)
     sudo sed -i 's/\r$//' /var/lib/jenkins/.ssh/id_rsa
     sudo chmod 600 /var/lib/jenkins/.ssh/id_rsa
-    sudo chown -R jenkins:jenkins /var/lib/jenkins/.ssh
 fi
 
 JENKINS_CASC_DIR="/var/lib/jenkins/casc"
 sudo mkdir -p "$JENKINS_CASC_DIR"
 if [ -f "./jenkins.yaml" ]; then
     sudo cp ./jenkins.yaml "$JENKINS_CASC_DIR/"
-    sudo chown -R jenkins:jenkins "$JENKINS_CASC_DIR"
 fi
 
+### CHANGE: Explicitly define JENKINS_HOME in the override. 
+### This prevents Jenkins from creating the hidden ".jenkins" folder.
 sudo mkdir -p /etc/systemd/system/jenkins.service.d/
 sudo tee /etc/systemd/system/jenkins.service.d/override.conf <<EOF
 [Service]
+Environment="JENKINS_HOME=/var/lib/jenkins"
 Environment="CASC_JENKINS_CONFIG=$JENKINS_CASC_DIR/jenkins.yaml"
 $(grep -v '^#' ./jenkins.env | sed 's/^/Environment="/; s/$/"/')
 EOF
+
+### CHANGE: Force-disable the Setup Wizard via Groovy script.
+### This ensures Jenkins boots straight into JCasC mode without waiting for a UI login.
+sudo mkdir -p /var/lib/jenkins/init.groovy.d
+echo 'jenkins.install.InstallState.initializeDefault()' | sudo tee /var/lib/jenkins/init.groovy.d/skip-wizard.groovy
 
 # --- 4. SSL & NGINX PROXY ---
 echo "=== Setting up Nginx for the Node App (443) ==="
@@ -97,8 +103,11 @@ EOF
 sudo rm -f /etc/nginx/sites-enabled/default
 
 # --- 5. FINAL SETUP & SERVICE MANAGEMENT ---
-echo "=== Adding Jenkins to Docker group & Restarting Services ==="
-# Fix permissions for the entire home directory to be safe
+echo "=== Finalizing Permissions and Starting Services ==="
+
+### CHANGE: Heavy-duty permission fix and cleanup of the "hidden" home directory
+### to ensure no conflicting data exists before the first clean boot.
+sudo rm -rf /var/lib/jenkins/.jenkins
 sudo chown -R jenkins:jenkins /var/lib/jenkins
 
 sudo usermod -aG docker jenkins
