@@ -1,27 +1,93 @@
 #!/bin/bash
-source jenkins.env
-sudo apt-get update && sudo apt-get install -y docker.io nginx openssl openjdk-17-jre wget
-sudo mkdir -p /var/lib/jenkins/.ssh
-sudo ssh-keygen -t ed25519 -N "" -f /var/lib/jenkins/.ssh/id_ed25519
-sudo chown -R jenkins:jenkins /var/lib/jenkins/.ssh
-export SSH_PRIVATE_KEY=$(sudo cat /var/lib/jenkins/.ssh/id_ed25519)
-wget -q -O - https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key | sudo apt-key add -
-sudo sh -c 'echo deb http://pkg.jenkins.io/debian-stable binary/ > /etc/apt/sources.list.d/jenkins.list'
-sudo apt-get update && sudo apt-get install -y jenkins
-sudo usermod -aG docker jenkins
-sudo systemctl enable --now jenkins nginx docker
-echo "CASC_JENKINS_CONFIG=$CASC_JENKINS_CONFIG" | sudo tee -a /etc/environment
+
+set -euo pipefail
+
+# 0. Silence the "Kernel Upgrade" prompts
+export DEBIAN_FRONTEND=noninteractive
+export NEEDRESTART_MODE=a
+
+echo "=== Updating system packages ==="
+sudo apt update -y
+sudo apt upgrade -y
+
+echo "=== Installing essential packages ==="
+sudo apt install -y openjdk-17-jdk docker.io nginx git curl gnupg openssl
+
+# --- 1. FIXED JENKINS REPO SETUP ---
+echo "=== Adding Jenkins GPG key and Repository ==="
+sudo mkdir -p /usr/share/keyrings
+curl -fsSL https://pkg.jenkins.io/debian-stable/jenkins.io-2026.key | sudo tee \
+  /usr/share/keyrings/jenkins-keyring.asc > /dev/null
+echo deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc] \
+  https://pkg.jenkins.io/debian-stable binary/ | sudo tee \
+  /etc/apt/sources.list.d/jenkins.list > /dev/null
+
+sudo apt update
+sudo apt install -y jenkins
+
+# --- 2. PLUGIN INSTALLATION (No-UI Requirement) ---
+echo "=== Installing Jenkins Plugins ==="
+PLUGIN_DIR="/var/lib/jenkins/plugins"
+PLUGIN_MANAGER_JAR="jenkins-plugin-manager.jar"
+curl -L "https://github.com/jenkinsci/plugin-installation-manager-tool/releases/download/2.13.0/jenkins-plugin-manager-2.13.0.jar" -o "$PLUGIN_MANAGER_JAR"
+
+# List all required plugins here (including matrix-auth, JCasC, JobDSL, etc.)
+PLUGINS="configuration-as-code job-dsl docker-workflow git matrix-auth"
+
+sudo java -jar "$PLUGIN_MANAGER_JAR" \
+    --war /usr/share/java/jenkins.war \
+    --plugin-download-directory "$PLUGIN_DIR" \
+    --plugins $PLUGINS
+
+sudo chown -R jenkins:jenkins "$PLUGIN_DIR"
+
+# --- 3. JCasC & SYSTEMD OVERRIDE ---
+echo "=== Configuring JCasC Pathing ==="
+JENKINS_CASC_DIR="/var/lib/jenkins/casc"
+sudo mkdir -p "$JENKINS_CASC_DIR"
+if [ -f "./jenkins.yaml" ]; then
+    sudo cp ./jenkins.yaml "$JENKINS_CASC_DIR/"
+    sudo chown -R jenkins:jenkins "$JENKINS_CASC_DIR"
+fi
+
+sudo mkdir -p /etc/systemd/system/jenkins.service.d/
+sudo tee /etc/systemd/system/jenkins.service.d/override.conf <<EOF
+[Service]
+Environment="CASC_JENKINS_CONFIG=$JENKINS_CASC_DIR/jenkins.yaml"
+# This injects your .env variables into Jenkins
+$(grep -v '^#' ./jenkins.env | sed 's/^/Environment="/; s/$/"/')
+EOF
+
+# --- 4. SSL & NGINX PROXY ---
+echo "=== Setting up Nginx for the Node App (443) ==="
 sudo mkdir -p /etc/nginx/ssl
-sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout /etc/nginx/ssl/jenkins.key -out /etc/nginx/ssl/jenkins.crt -subj "/C=US/ST=State/L=City/O=Dev/CN=localhost"
-cat <<NGINX | sudo tee /etc/nginx/sites-available/default
+sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+    -keyout /etc/nginx/ssl/app.key \
+    -out /etc/nginx/ssl/app.crt \
+    -subj "/C=US/ST=State/L=City/O=Org/CN=node-app.local"
+
+sudo tee /etc/nginx/conf.d/node_app.conf <<EOF
 server {
     listen 443 ssl;
+    ssl_certificate /etc/nginx/ssl/app.crt;
+    ssl_certificate_key /etc/nginx/ssl/app.key;
+
     location / {
-        proxy_pass http://127.0.0.1:5000;
+        proxy_pass http://127.0.0.1:3000;
         proxy_set_header Host \$host;
+        proxy_set_header X-Forwarded-Proto \$scheme;
     }
 }
-NGINX
-sudo systemctl restart nginx jenkins
-echo "Done. Public Key for GitHub:"
-sudo cat /var/lib/jenkins/.ssh/id_ed25519.pub
+EOF
+
+sudo rm -f /etc/nginx/sites-enabled/default
+
+# --- 5. FINAL SETUP & SERVICE MANAGEMENT ---
+echo "=== Adding Jenkins to Docker group & Restarting Services ==="
+sudo usermod -aG docker jenkins
+sudo systemctl daemon-reload
+sudo systemctl restart jenkins nginx docker
+sudo systemctl enable jenkins nginx docker
+
+echo "=== Final Status Check ==="
+sudo systemctl status jenkins --no-pager
