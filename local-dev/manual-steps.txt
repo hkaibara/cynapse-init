@@ -1,5 +1,3 @@
-#steps
-
 sudo apt update && sudo apt install -y git
 sudo groupadd -g 1001 jenkins
 sudo useradd -u 1001 -g jenkins -m -d /var/lib/jenkins -s /bin/bash jenkins

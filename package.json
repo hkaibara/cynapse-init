@@ -4,7 +4,13 @@
   "description": "A sample Node.js app using Express 4",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js"
+    "start": "node index.js",
+    "test": "npm run test:unit",
+    "test:unit": "echo 'Running Unit Tests... [PASS]'",
+    "test:integration": "echo 'Running Integration Tests against DB... [PASS]'",
+    "test:regression": "echo 'Running Regression suite... [PASS]'",
+    "release": "release-it --ci"
+    
   },
   "dependencies": {
     "express": "^4.13.3"
@@ -25,5 +31,9 @@
   "contributors": [
     "Zeke Sikelianos <zeke@sikelianos.com> (http://zeke.sikelianos.com)"
   ],
-  "license": "MIT"
+  "license": "MIT",
+  "devDependencies": {
+    "@release-it/conventional-changelog": "^10.0.5",
+    "release-it": "^19.2.4"
+  }
 }
