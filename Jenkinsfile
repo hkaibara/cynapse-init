@@ -36,12 +36,14 @@ pipeline {
                     passwordVariable: 'GITHUB_PAT'
                 )]) {
                     script {
-                        sh 'npm ci'
-                        sh 'git config user.email "hiroshi.kaibara.hk@gmail.com" && git config user.name "hkaibara"'
-                        def remoteUrl = sh(script: "git remote get-url origin", returnStdout: true).trim()
-                        def authedRemote = remoteUrl.replace("https://github.com/", "https://${GITHUB_PAT}@github.com/")                        
-                        sh "git checkout main"                        
-                        sh 'npx release-it --ci'
+                        sh '''
+                        npm ci
+                        git config user.email "hiroshi.kaibara.hk@gmail.com"
+                        git config user.name "hkaibara"
+                        git checkout main
+                        git config credential.helper '!f() { echo username=$GITHUB_USER; echo password=$GITHUB_PAT; }; f'
+                        npx release-it --ci
+                        '''
                     }
                 }
             }
