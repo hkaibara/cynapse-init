@@ -30,7 +30,11 @@ pipeline {
         stage('Release & Tag') {
             when { branch 'main' }
             steps {
-                withCredentials([string(credentialsId: 'github-token', variable: 'GITHUB_PAT')]) {
+                withCredentials([usernamePassword(
+                    credentialsId: 'github-token',
+                    usernameVariable: 'GITHUB_USER',
+                    passwordVariable: 'GITHUB_PAT'
+                )]) {
                     script {
                         sh 'git config user.email "hiroshi.kaibara.hk@gmail.com" && git config user.name "hkaibara"'
                         def remoteUrl = sh(script: "git remote get-url origin", returnStdout: true).trim()
