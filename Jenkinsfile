@@ -40,7 +40,7 @@ pipeline {
                         sh 'git config user.email "hiroshi.kaibara.hk@gmail.com" && git config user.name "hkaibara"'
                         def remoteUrl = sh(script: "git remote get-url origin", returnStdout: true).trim()
                         def authedRemote = remoteUrl.replace("https://github.com/", "https://${GITHUB_PAT}@github.com/")                        
-                        sh "git remote set-url origin ${authedRemote}"                        
+                        sh "git checkout main"                        
                         sh 'npx release-it --ci'
                     }
                 }
