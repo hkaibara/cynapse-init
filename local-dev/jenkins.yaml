@@ -29,41 +29,20 @@ credentials:
                 directEntry:
                   privateKey: "${readFile:/var/lib/jenkins/.ssh/id_rsa}"
 
-tool:
-  nodejs:
-    installations:
-      - name: "node20"
-        properties:
-          - installSource:
-              installers:
-                - nodeJSInstaller:
-                    id: "20.18.0"
-
 jobs:
   - script: >
-      multibranchPipelineJob('Node-App-CI-CD') {
-        branchSources {
-          github {
-            id('node-app-repo')
-            scanCredentialsId('github-ssh-key')
-            repoOwner('hkaibara')
-            repository('cynapse-init')
-            buildOriginBranch(true)
-            buildOriginPRMerge(true)
-            buildOriginPRHead(true)
-            traits:
-              - gitHubBranchDiscovery {
-                  strategyId(1)
+      pipelineJob('Deploy-Node-App') {
+        definition {
+          cpsScm {
+            scm {
+              git {
+                remote {
+                  url("${GIT_REPO_URL}")
+                  credentials('github-ssh-key')
                 }
-              - filterByName {
-                  includes('main')
-                  excludes('.*')
-                }
-          }
-        }
-        orphanedItemStrategy {
-          discardOldItems { 
-            numToKeep(10) 
+                branches('main')
+              }
+            }
           }
         }
       }
