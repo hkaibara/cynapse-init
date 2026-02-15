@@ -1,0 +1,39 @@
+jenkins:
+  securityRealm:
+    local:
+      allowsSignup: false
+      users:
+       - id: "admin"
+         password: "password123"
+  authorizationStrategy:
+    globalMatrix:
+      permissions:
+        - "Overall/Administer:admin"
+credentials:
+  system:
+    domainCredentials:
+      - credentials:
+          - basicSSHUserPrivateKey:
+              scope: GLOBAL
+              id: "github-ssh-key"
+              username: "git"
+              privateKeySource:
+                directEntry:
+                  privateKey: "${SSH_PRIVATE_KEY}"
+jobs:
+  - script: >
+      pipelineJob('Deploy-Node-App') {
+        definition {
+          cpsScm {
+            scm {
+              git {
+                remote {
+                  url("${GIT_REPO_URL}")
+                  credentials('github-ssh-key')
+                }
+                branches('main')
+              }
+            }
+          }
+        }
+      }
