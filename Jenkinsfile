@@ -36,6 +36,7 @@ pipeline {
                     passwordVariable: 'GITHUB_PAT'
                 )]) {
                     script {
+                        sh 'npm ci'
                         sh 'git config user.email "hiroshi.kaibara.hk@gmail.com" && git config user.name "hkaibara"'
                         def remoteUrl = sh(script: "git remote get-url origin", returnStdout: true).trim()
                         def authedRemote = remoteUrl.replace("https://github.com/", "https://${GITHUB_PAT}@github.com/")                        
