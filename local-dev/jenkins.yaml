@@ -8,7 +8,7 @@ jenkins:
   authorizationStrategy:
     globalMatrix:
       permissions:
-        - "Overall/Administer"
+        - "Overall/Administer:admin"
 credentials:
   system:
     domainCredentials:
