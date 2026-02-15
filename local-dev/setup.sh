@@ -32,7 +32,7 @@ PLUGIN_MANAGER_JAR="jenkins-plugin-manager.jar"
 curl -L "https://github.com/jenkinsci/plugin-installation-manager-tool/releases/download/2.13.0/jenkins-plugin-manager-2.13.0.jar" -o "$PLUGIN_MANAGER_JAR"
 
 # List all required plugins here (including matrix-auth, JCasC, JobDSL, etc.)
-PLUGINS="configuration-as-code job-dsl docker-workflow git matrix-auth"
+PLUGINS="configuration-as-code ssh-credentials git matrix-auth workflow-aggregator"
 
 sudo java -jar "$PLUGIN_MANAGER_JAR" \
     --war /usr/share/java/jenkins.war \

@@ -8,7 +8,7 @@ jenkins:
   authorizationStrategy:
     globalMatrix:
       permissions:
-        - "Overall/Administer:admin"
+        - "Overall/Administer"
 credentials:
   system:
     domainCredentials:
@@ -18,8 +18,8 @@ credentials:
               id: "github-ssh-key"
               username: "git"
               privateKeySource:
-                directEntry:
-                  privateKey: "${SSH_PRIVATE_KEY}"
+                fileOnMaster:
+                  privateKeyFile: "/var/lib/jenkins/.ssh/id_rsa"
 jobs:
   - script: >
       pipelineJob('Deploy-Node-App') {
