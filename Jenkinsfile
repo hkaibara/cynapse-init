@@ -23,7 +23,6 @@ pipeline {
                 }
             }
         }
-    }
         stage('Deploy') {
             steps {
                 script {
@@ -33,7 +32,8 @@ pipeline {
                 }
             }
         }
-
+    }
+    
     post {
         failure {
             script {
