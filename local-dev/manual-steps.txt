@@ -10,6 +10,6 @@ sudo -u jenkins ssh-keyscan github.com | sudo tee -a /var/lib/jenkins/.ssh/known
 sudo -u jenkins git clone git@github.com:hkaibara/cynapse-init.git /tmp/jenkins-bootstrap
 
 cd /tmp/jenkins-bootstrap/local-dev/
-sudosed -i 's/\r$//' setup.sh 
+sudo sed -i 's/\r$//' setup.sh 
 sudo chmod +x setup.sh 
 sudo ./setup.sh
