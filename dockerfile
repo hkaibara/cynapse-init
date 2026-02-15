@@ -1,9 +1,9 @@
-FROM node:18-slim AS builder
+FROM node:20-slim AS builder
 WORKDIR /app
 COPY package*.json ./
 RUN npm ci
 
-FROM node:18-slim
+FROM node:20-slim
 WORKDIR /app
 COPY --from=builder /app/node_modules ./node_modules
 COPY . .
