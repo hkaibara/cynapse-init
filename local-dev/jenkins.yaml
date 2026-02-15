@@ -51,6 +51,14 @@ jobs:
             buildOriginBranch(true)
             buildOriginPRMerge(true)
             buildOriginPRHead(true)
+            traits:
+              - gitHubBranchDiscovery {
+                  strategyId(1)
+                }
+              - filterByName {
+                  includes('main')
+                  excludes('.*')
+                }
           }
         }
         orphanedItemStrategy {
