@@ -18,8 +18,8 @@ credentials:
               id: "github-ssh-key"
               username: "git"
               privateKeySource:
-                fileOnMaster:
-                  privateKeyFile: "/var/lib/jenkins/.ssh/id_rsa"
+                directEntry:
+                  privateKey: "${readFile:/var/lib/jenkins/.ssh/id_rsa}"
 jobs:
   - script: >
       pipelineJob('Deploy-Node-App') {
