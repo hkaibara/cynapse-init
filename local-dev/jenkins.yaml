@@ -29,6 +29,16 @@ credentials:
                 directEntry:
                   privateKey: "${readFile:/var/lib/jenkins/.ssh/id_rsa}"
 
+tool:
+  nodejs:
+    installations:
+      - name: "node22"
+        properties:
+          - installSource:
+              installers:
+                - nodeJSInstaller:
+                    id: "22.18.0"
+
 jobs:
   - script: >
       pipelineJob('Deploy-Node-App') {
