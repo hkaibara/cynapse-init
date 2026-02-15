@@ -17,12 +17,10 @@ sudo apt install -y openjdk-17-jdk docker.io nginx git curl gnupg openssl
 echo "=== Adding Jenkins GPG key and Repository ==="
 sudo mkdir -p /usr/share/keyrings
 # Download and de-armor the key so it's in a format apt always understands
-curl -fsSL https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key | \
-    gpg --dearmor | sudo tee /usr/share/keyrings/jenkins-keyring.gpg > /dev/null
-
-echo "deb [signed-by=/usr/share/keyrings/jenkins-keyring.gpg] https://pkg.jenkins.io/debian-stable binary/" | \
-    sudo tee /etc/apt/sources.list.d/jenkins.list > /dev/null
-sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 7198F4B714ABFC68
+wget -q -O - https://pkg.jenkins.io/debian-stable/jenkins.io.key | 
+  sudo apt-key add -
+sudo sh -c 'echo deb https://pkg.jenkins.io/debian-stable binary/ > \
+/etc/apt/sources.list.d/jenkins.list'
 
 sudo apt update
 sudo apt install -y jenkins
