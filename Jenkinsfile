@@ -30,8 +30,15 @@ pipeline {
         stage('Release & Tag') {
             when { branch 'main' }
             steps {
-                sh 'git config user.email "hiroshi.kaibara.hk@gmail.com" && git config user.name "hkaibara"'
-                sh 'npx release-it --ci'
+                withCredentials([string(credentialsId: 'github-token', variable: 'GITHUB_PAT')]) {
+                    script {
+                        sh 'git config user.email "hiroshi.kaibara.hk@gmail.com" && git config user.name "hkaibara"'
+                        def remoteUrl = sh(script: "git remote get-url origin", returnStdout: true).trim()
+                        def authedRemote = remoteUrl.replace("https://github.com/", "https://${GITHUB_PAT}@github.com/")                        
+                        sh "git remote set-url origin ${authedRemote}"                        
+                        sh 'npx release-it --ci'
+                    }
+                }
             }
         }
 

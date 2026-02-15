@@ -9,6 +9,14 @@ jenkins:
     globalMatrix:
       permissions:
         - "Overall/Administer:admin"
+
+unclassified:
+  githubConfiguration:
+    apiRateLimitChecker: "ThrottleOnOver"
+    endpoints:
+      - apiUri: "https://api.github.com"
+        name: "GitHub"
+
 credentials:
   system:
     domainCredentials:
@@ -20,7 +28,6 @@ credentials:
               privateKeySource:
                 directEntry:
                   privateKey: "${readFile:/var/lib/jenkins/.ssh/id_rsa}"
-
 
 tool:
   nodejs:
