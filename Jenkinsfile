@@ -1,5 +1,8 @@
 pipeline {
     agent any
+    tools {
+        nodejs "node18"
+    }
     environment {
         DOCKER_IMAGE = "my-node-app"
         // Tracks the current active container for rollback
@@ -24,7 +27,7 @@ pipeline {
             when { branch 'main' }
             steps {
                 // Ensure git is configured for release-it
-                sh 'git config user.email "jenkins@ci.com" && git config user.name "Jenkins"'
+                sh 'git config user.email "hiroshi.kaibara.hk@gmail.com" && git config user.name "hkaibara"'
                 sh 'npx release-it --ci'
             }
         }
