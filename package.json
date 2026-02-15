@@ -1,6 +1,6 @@
 {
   "name": "node-js-sample",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "A sample Node.js app using Express 4",
   "main": "index.js",
   "scripts": {
@@ -10,7 +10,6 @@
     "test:integration": "echo 'Running Integration Tests against DB... [PASS]'",
     "test:regression": "echo 'Running Regression suite... [PASS]'",
     "release": "release-it --ci"
-    
   },
   "dependencies": {
     "express": "^4.13.3"
